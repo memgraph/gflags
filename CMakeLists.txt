@@ -325,7 +325,6 @@ endif ()
 set (PUBLIC_HDRS
   "gflags.h"
   "gflags_declare.h"
-  "gflags_completions.h"
 )
 
 if (GFLAGS_NAMESPACE_SECONDARY)
@@ -350,7 +349,6 @@ set (PRIVATE_HDRS
 set (GFLAGS_SRCS
   "gflags.cc"
   "gflags_reporting.cc"
-  "gflags_completions.cc"
 )
 
 if (OS_WINDOWS)
@@ -524,9 +522,6 @@ if (INSTALL_HEADERS)
     DESTINATION ${CONFIG_INSTALL_DIR}
   )
   install (EXPORT ${EXPORT_NAME} DESTINATION ${CONFIG_INSTALL_DIR})
-  if (UNIX)
-    install (PROGRAMS src/gflags_completions.sh DESTINATION ${RUNTIME_INSTALL_DIR})
-  endif ()
 endif ()
 
 if (PKGCONFIG_INSTALL_DIR)

@@ -372,8 +372,6 @@ static void AppendPrognameStrings(vector<string>* substrings,
 void HandleCommandLineHelpFlags() {
   const char* progname = ProgramInvocationShortName();
 
-  HandleCommandLineCompletions();
-
   vector<string> substrings;
   AppendPrognameStrings(&substrings, progname);
 
