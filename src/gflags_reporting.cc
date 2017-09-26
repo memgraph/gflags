@@ -63,11 +63,6 @@
 
 // The 'reporting' flags.  They all call gflags_exitfunc().
 DEFINE_bool  (help,        false, "show help on all flags [tip: all flags can have two dashes]");
-DEFINE_bool  (helpfull,    false, "show help on all flags -- same as -help");
-DEFINE_bool  (helpshort,   false, "show help on only the main module for this program");
-DEFINE_string(helpon,      "",    "show help on the modules named by this flag value");
-DEFINE_string(helpmatch,   "",    "show help on modules whose name contains the specified substr");
-DEFINE_bool  (helppackage, false, "show help on all modules in the main package");
 DEFINE_bool  (helpxml,     false, "produce an xml version of help");
 DEFINE_bool  (version,     false, "show version and build info and exit");
 
@@ -382,53 +377,9 @@ void HandleCommandLineHelpFlags() {
   vector<string> substrings;
   AppendPrognameStrings(&substrings, progname);
 
-  if (FLAGS_helpshort) {
-    // show only flags related to this binary:
-    // E.g. for fileutil.cc, want flags containing   ... "/fileutil." cc
-    ShowUsageWithFlagsMatching(progname, substrings);
-    gflags_exitfunc(1);
-
-  } else if (FLAGS_help || FLAGS_helpfull) {
+  if (FLAGS_help) {
     // show all options
     ShowUsageWithFlagsRestrict(progname, "");   // empty restrict
-    gflags_exitfunc(1);
-
-  } else if (!FLAGS_helpon.empty()) {
-    string restrict = PATH_SEPARATOR + FLAGS_helpon + ".";
-    ShowUsageWithFlagsRestrict(progname, restrict.c_str());
-    gflags_exitfunc(1);
-
-  } else if (!FLAGS_helpmatch.empty()) {
-    ShowUsageWithFlagsRestrict(progname, FLAGS_helpmatch.c_str());
-    gflags_exitfunc(1);
-
-  } else if (FLAGS_helppackage) {
-    // Shows help for all files in the same directory as main().  We
-    // don't want to resort to looking at dirname(progname), because
-    // the user can pick progname, and it may not relate to the file
-    // where main() resides.  So instead, we search the flags for a
-    // filename like "/progname.cc", and take the dirname of that.
-    vector<CommandLineFlagInfo> flags;
-    GetAllFlags(&flags);
-    string last_package;
-    for (vector<CommandLineFlagInfo>::const_iterator flag = flags.begin();
-         flag != flags.end();
-         ++flag) {
-      if (!FileMatchesSubstring(flag->filename, substrings))
-        continue;
-      const string package = Dirname(flag->filename) + PATH_SEPARATOR;
-      if (package != last_package) {
-        ShowUsageWithFlagsRestrict(progname, package.c_str());
-        VLOG(7) << "Found package: " << package;
-        if (!last_package.empty()) {      // means this isn't our first pkg
-          LOG(WARNING) << "Multiple packages contain a file=" << progname;
-        }
-        last_package = package;
-      }
-    }
-    if (last_package.empty()) {   // never found a package to print
-      LOG(WARNING) << "Unable to find a package for file=" << progname;
-    }
     gflags_exitfunc(1);
 
   } else if (FLAGS_helpxml) {
