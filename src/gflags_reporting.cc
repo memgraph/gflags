@@ -52,6 +52,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <assert.h>
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -109,9 +110,7 @@ static string PrintStringFlagsWithQuotes(const CommandLineFlagInfo& flag,
 }
 
 string ReplaceChar(string str, char find, char replace) {
-  for (auto &chr : str) {
-    if (chr == find) chr = replace;
-  }
+  std::replace(str.begin(), str.end(), find, replace);
   return str;
 }
 
