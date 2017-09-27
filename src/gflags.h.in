@@ -83,6 +83,16 @@
 
 #include "gflags/gflags_declare.h" // IWYU pragma: export
 
+#define GFLAGS_NO_FILENAMES @GFLAGS_NO_FILENAMES@
+
+// If this flag is true then don't store source filenames
+#if GFLAGS_NO_FILENAMES
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wbuiltin-macro-redefined"
+#undef __FILE__
+#define __FILE__ ""
+#pragma GCC diagnostic pop
+#endif
 
 // We always want to export variables defined in user code
 #ifndef GFLAGS_DLL_DEFINE_FLAG

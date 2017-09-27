@@ -203,7 +203,9 @@ static string DescribeOneFlagInXML(const CommandLineFlagInfo& flag) {
   // and meaning need to avoid attribute normalization.  This way it
   // can be parsed by simple programs, in addition to xml parsers.
   string r("<flag>");
+#if GFLAGS_NO_FILENAMES == 0
   AddXMLTag(&r, "file", flag.filename);
+#endif
   AddXMLTag(&r, "name", flag.name);
   AddXMLTag(&r, "meaning", flag.description);
   AddXMLTag(&r, "default", flag.default_value);
@@ -268,8 +270,10 @@ static void ShowUsageWithFlagsMatching(const char *argv0,
   vector<CommandLineFlagInfo> flags;
   GetAllFlags(&flags);           // flags are sorted by filename, then flagname
 
+#if GFLAGS_NO_FILENAMES == 0
   string last_filename;          // so we know when we're at a new file
   bool first_directory = true;   // controls blank lines between dirs
+#endif
   bool found_match = false;      // stays false iff no dir matches restrict
   for (vector<CommandLineFlagInfo>::const_iterator flag = flags.begin();
        flag != flags.end();
@@ -279,6 +283,7 @@ static void ShowUsageWithFlagsMatching(const char *argv0,
       // If the flag has been stripped, pretend that it doesn't exist.
       if (flag->description == kStrippedFlagHelp) continue;
       found_match = true;     // this flag passed the match!
+#if GFLAGS_NO_FILENAMES == 0
       if (flag->filename != last_filename) {                      // new file
         if (Dirname(flag->filename) != Dirname(last_filename)) {  // new dir!
           if (!first_directory)
@@ -288,6 +293,7 @@ static void ShowUsageWithFlagsMatching(const char *argv0,
         fprintf(stdout, "\n  Flags from %s:\n", flag->filename.c_str());
         last_filename = flag->filename;
       }
+#endif
       // Now print this flag
       fprintf(stdout, "%s", DescribeOneFlag(*flag).c_str());
     }

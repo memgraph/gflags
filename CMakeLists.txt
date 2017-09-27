@@ -210,6 +210,8 @@ if (INCLUDE_DIR MATCHES "^\\.\\.[/\\]")
 endif ()
 set (GFLAGS_INCLUDE_DIR "${INCLUDE_DIR}")
 
+option (GFLAGS_NO_FILENAMES "Disable filenames in gflags" 0)
+
 # ----------------------------------------------------------------------------
 # system checks
 include (CheckTypeSize)
