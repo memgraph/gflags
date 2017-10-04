@@ -117,9 +117,6 @@ using namespace MUTEX_NAMESPACE;
 
 // Special flags, type 1: the 'recursive' flags.  They set another flag's val.
 DEFINE_string(flagfile,   "", "load flags from file");
-DEFINE_string(fromenv,    "", "set flags from the environment"
-                              " [use 'export FLAGS_flag1=value']");
-DEFINE_string(tryfromenv, "", "set flags from the environment if present");
 
 
 namespace GFLAGS_NAMESPACE {
@@ -978,7 +975,7 @@ class CommandLineFlagParser {
   // describing the new value that the option has been set to.  If
   // option_name does not specify a valid option name, or value is not
   // a valid value for option_name, newval is empty.  Does recursive
-  // processing for --flagfile and --fromenv.  Returns the new value
+  // processing for --flagfile.  Returns the new value
   // if everything went ok, or empty-string if not.  (Actually, the
   // return-string could hold many flag/value pairs due to --flagfile.)
   // NB: Must have called registry_->Lock() before calling this function.
@@ -1000,9 +997,6 @@ class CommandLineFlagParser {
   // These are called by ProcessSingleOptionLocked and, similarly, return
   // new values if everything went ok, or the empty-string if not.
   string ProcessFlagfileLocked(const string& flagval, FlagSettingMode set_mode);
-  // diff fromenv/tryfromenv
-  string ProcessFromenvLocked(const string& flagval, FlagSettingMode set_mode,
-                              bool errors_are_fatal);
 
  private:
   FlagRegistry* const registry_;
@@ -1162,51 +1156,6 @@ string CommandLineFlagParser::ProcessFlagfileLocked(const string& flagval,
   return msg;
 }
 
-string CommandLineFlagParser::ProcessFromenvLocked(const string& flagval,
-                                                   FlagSettingMode set_mode,
-                                                   bool errors_are_fatal) {
-  if (flagval.empty())
-    return "";
-
-  string msg;
-  vector<string> flaglist;
-  ParseFlagList(flagval.c_str(), &flaglist);
-
-  for (size_t i = 0; i < flaglist.size(); ++i) {
-    const char* flagname = flaglist[i].c_str();
-    CommandLineFlag* flag = registry_->FindFlagLocked(flagname);
-    if (flag == NULL) {
-      error_flags_[flagname] =
-          StringPrintf("%sunknown command line flag '%s' "
-                       "(via --fromenv or --tryfromenv)\n",
-                       kError, flagname);
-      undefined_names_[flagname] = "";
-      continue;
-    }
-
-    const string envname = string("FLAGS_") + string(flagname);
-    string envval;
-    if (!SafeGetEnv(envname.c_str(), envval)) {
-      if (errors_are_fatal) {
-        error_flags_[flagname] = (string(kError) + envname +
-                                  " not found in environment\n");
-      }
-      continue;
-    }
-
-    // Avoid infinite recursion.
-    if (envval == "fromenv" || envval == "tryfromenv") {
-      error_flags_[flagname] =
-          StringPrintf("%sinfinite recursion on environment flag '%s'\n",
-                       kError, envval.c_str());
-      continue;
-    }
-
-    msg += ProcessSingleOptionLocked(flag, envval.c_str(), set_mode);
-  }
-  return msg;
-}
-
 string CommandLineFlagParser::ProcessSingleOptionLocked(
     CommandLineFlag* flag, const char* value, FlagSettingMode set_mode) {
   string msg;
@@ -1215,18 +1164,11 @@ string CommandLineFlagParser::ProcessSingleOptionLocked(
     return "";
   }
 
-  // The recursive flags, --flagfile and --fromenv and --tryfromenv,
-  // must be dealt with as soon as they're seen.  They will emit
+  // The recursive flag --flagfile
+  // must be dealt with as soon as it's seen.  It will emit
   // messages of their own.
   if (strcmp(flag->name(), "flagfile") == 0) {
     msg += ProcessFlagfileLocked(FLAGS_flagfile, set_mode);
-
-  } else if (strcmp(flag->name(), "fromenv") == 0) {
-    // last arg indicates envval-not-found is fatal (unlike in --tryfromenv)
-    msg += ProcessFromenvLocked(FLAGS_fromenv, set_mode, true);
-
-  } else if (strcmp(flag->name(), "tryfromenv") == 0) {
-    msg += ProcessFromenvLocked(FLAGS_tryfromenv, set_mode, false);
   }
 
   return msg;
@@ -1957,15 +1899,12 @@ static uint32 ParseCommandLineFlagsInternal(int* argc, char*** argv,
   CommandLineFlagParser parser(registry);
 
   // When we parse the commandline flags, we'll handle --flagfile,
-  // --tryfromenv, etc. as we see them (since flag-evaluation order
-  // may be important).  But sometimes apps set FLAGS_tryfromenv/etc.
+  // etc. as we see them (since flag-evaluation order
+  // may be important).  But sometimes apps set FLAGS_flagfile/etc.
   // manually before calling ParseCommandLineFlags.  We want to evaluate
   // those too, as if they were the first flags on the commandline.
   registry->Lock();
   parser.ProcessFlagfileLocked(FLAGS_flagfile, SET_FLAGS_VALUE);
-  // Last arg here indicates whether flag-not-found is a fatal error or not
-  parser.ProcessFromenvLocked(FLAGS_fromenv, SET_FLAGS_VALUE, true);
-  parser.ProcessFromenvLocked(FLAGS_tryfromenv, SET_FLAGS_VALUE, false);
   registry->Unlock();
 
   // Now get the flags specified on the commandline
