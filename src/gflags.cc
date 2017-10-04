@@ -121,11 +121,6 @@ DEFINE_string(fromenv,    "", "set flags from the environment"
                               " [use 'export FLAGS_flag1=value']");
 DEFINE_string(tryfromenv, "", "set flags from the environment if present");
 
-// Special flags, type 2: the 'parsing' flags.  They modify how we parse.
-DEFINE_string(undefok, "", "comma-separated list of flag names that it is okay to specify "
-                           "on the command line even if the program does not define a flag "
-                           "with that name.  IMPORTANT: flags in this list that have "
-                           "arguments MUST use the flag=value format");
 
 namespace GFLAGS_NAMESPACE {
 
@@ -1267,21 +1262,6 @@ void CommandLineFlagParser::ValidateUnmodifiedFlags() {
 }
 
 bool CommandLineFlagParser::ReportErrors() {
-  // error_flags_ indicates errors we saw while parsing.
-  // But we ignore undefined-names if ok'ed by --undef_ok
-  if (!FLAGS_undefok.empty()) {
-    vector<string> flaglist;
-    ParseFlagList(FLAGS_undefok.c_str(), &flaglist);
-    for (size_t i = 0; i < flaglist.size(); ++i) {
-      // We also deal with --no<flag>, in case the flagname was boolean
-      const string no_version = string("no") + flaglist[i];
-      if (undefined_names_.find(flaglist[i]) != undefined_names_.end()) {
-        error_flags_[flaglist[i]] = "";    // clear the error message
-      } else if (undefined_names_.find(no_version) != undefined_names_.end()) {
-        error_flags_[no_version] = "";
-      }
-    }
-  }
   // Likewise, if they decided to allow reparsing, all undefined-names
   // are ok; we just silently ignore them now, and hope that a future
   // parse will pick them up somehow.
