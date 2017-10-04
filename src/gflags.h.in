@@ -308,7 +308,7 @@ bool ReadFlagsFromString(const std::string& flagfilecontents,
                          const char* prog_name,
                          bool errors_are_fatal);  // uses SET_FLAGS_VALUE
 
-// These let you manually implement --flagfile functionality.
+// These let you manually implement --flag-file functionality.
 // DEPRECATED.
 extern GFLAGS_DLL_DECL bool AppendFlagsIntoFile(const std::string& filename, const char* prog_name);
 extern GFLAGS_DLL_DECL bool ReadFromFlagsFile(const std::string& filename, const char* prog_name, bool errors_are_fatal);   // uses SET_FLAGS_VALUE
