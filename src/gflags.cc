@@ -509,12 +509,13 @@ class CommandLineFlag {
  public:
   // Note: we take over memory-ownership of current_val and default_val.
   CommandLineFlag(const char* name, const char* help, const char* filename,
-                  FlagValue* current_val, FlagValue* default_val);
+                  bool hidden, FlagValue* current_val, FlagValue* default_val);
   ~CommandLineFlag();
 
   const char* name() const { return name_; }
   const char* help() const { return help_; }
   const char* filename() const { return file_; }
+  bool hidden() const { return hidden_; }
   const char* CleanFileName() const;  // nixes irrelevant prefix such as homedir
   string current_value() const { return current_->ToString(); }
   string default_value() const { return defvalue_->ToString(); }
@@ -546,6 +547,7 @@ class CommandLineFlag {
   const char* const name_;     // Flag name
   const char* const help_;     // Help message
   const char* const file_;     // Which file did this come from?
+  const bool hidden_;          // Is the flag hidden?
   bool modified_;              // Set after default assignment?
   FlagValue* defvalue_;        // Default value for flag
   FlagValue* current_;         // Current value for flag
@@ -560,9 +562,9 @@ class CommandLineFlag {
 };
 
 CommandLineFlag::CommandLineFlag(const char* name, const char* help,
-                                 const char* filename,
+                                 const char* filename, bool hidden,
                                  FlagValue* current_val, FlagValue* default_val)
-    : name_(name), help_(help), file_(filename), modified_(false),
+    : name_(name), help_(help), file_(filename), hidden_(hidden), modified_(false),
       defvalue_(default_val), current_(current_val), validate_fn_proto_(NULL) {
 }
 
@@ -602,6 +604,7 @@ void CommandLineFlag::FillCommandLineFlagInfo(
   result->current_value = current_value();
   result->default_value = default_value();
   result->filename = CleanFileName();
+  result->hidden = hidden();
   UpdateModifiedBit();
   result->is_default = !modified_;
   result->has_validator_fn = validate_function() != NULL;
@@ -1381,13 +1384,14 @@ namespace {
 void RegisterCommandLineFlag(const char* name,
                              const char* help,
                              const char* filename,
+                             bool hidden,
                              FlagValue* current,
                              FlagValue* defvalue) {
   if (help == NULL)
     help = "";
   // Importantly, flag_ will never be deleted, so storage is always good.
   CommandLineFlag* flag =
-      new CommandLineFlag(name, help, filename, current, defvalue);
+      new CommandLineFlag(name, help, filename, hidden, current, defvalue);
   FlagRegistry::GlobalRegistry()->RegisterFlag(flag);  // default registry
 }
 }
@@ -1396,18 +1400,19 @@ template <typename FlagType>
 FlagRegisterer::FlagRegisterer(const char* name,
                                const char* help,
                                const char* filename,
+                               bool hidden,
                                FlagType* current_storage,
                                FlagType* defvalue_storage) {
   FlagValue* const current = new FlagValue(current_storage, false);
   FlagValue* const defvalue = new FlagValue(defvalue_storage, false);
-  RegisterCommandLineFlag(name, help, filename, current, defvalue);
+  RegisterCommandLineFlag(name, help, filename, hidden, current, defvalue);
 }
 
 // Force compiler to generate code for the given template specialization.
 #define INSTANTIATE_FLAG_REGISTERER_CTOR(type)                  \
   template GFLAGS_DLL_DECL FlagRegisterer::FlagRegisterer(      \
       const char* name, const char* help, const char* filename, \
-      type* current_storage, type* defvalue_storage)
+      bool hidden, type* current_storage, type* defvalue_storage)
 
 // Do this for all supported flag types.
 INSTANTIATE_FLAG_REGISTERER_CTOR(bool);
@@ -1652,7 +1657,7 @@ class FlagSaverImpl {
       // Sets up all the const variables in backup correctly
       CommandLineFlag* backup = new CommandLineFlag(
           main->name(), main->help(), main->filename(),
-          main->current_->New(), main->defvalue_->New());
+          main->hidden(), main->current_->New(), main->defvalue_->New());
       // Sets up all the non-const variables in backup correctly
       backup->CopyFrom(*main);
       backup_registry_.push_back(backup);   // add it to a convenient list

@@ -277,6 +277,9 @@ static void ShowUsageWithFlagsMatching(const char *argv0,
   for (vector<CommandLineFlagInfo>::const_iterator flag = flags.begin();
        flag != flags.end();
        ++flag) {
+#if GFLAGS_NO_FILENAMES != 0
+    if (flag->hidden) continue;
+#endif
     if (substrings.empty() ||
         FileMatchesSubstring(flag->filename, substrings)) {
       // If the flag has been stripped, pretend that it doesn't exist.
